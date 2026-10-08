@@ -1,0 +1,10 @@
+﻿feature,importance
+resource_expansion,0.4907744633177385
+unique_tool_ratio,0.17391657676096986
+failure_count,0.0884116971377436
+privilege_exploration,0.08394399452630918
+sequence_length,0.05999250246013857
+goal_persistence,0.035003657510814225
+retry_diversity,0.03431180518567597
+tool_switch_rate,0.029088506443442585
+external_transfer,0.0045567966571675046

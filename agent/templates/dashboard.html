@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>지키ME</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--line:#e5e7eb;--text:#101828;--muted:#667085;--ok:#177245;--low:#a57c00;--med:#d97706;--high:#dc2626;--critical:#8b0000;--blue:#205295}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);font-family:Arial,"Noto Sans KR",sans-serif;color:var(--text)}
+.wrap{max-width:1260px;margin:0 auto;padding:28px}.header{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+.brand{font-size:30px;font-weight:850}.heroq{font-size:18px;font-weight:800;margin-top:8px}.sub{color:var(--muted);margin-top:5px;line-height:1.5}
+.status{padding:9px 14px;border-radius:999px;background:#ecfdf3;color:var(--ok);font-weight:800;white-space:nowrap}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px}.label{color:var(--muted);font-size:13px}.value{font-size:27px;font-weight:850;margin-top:5px}
+.bar{height:16px;background:#e5e7eb;border-radius:999px;overflow:hidden}.fill{height:100%;width:0;transition:.4s}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}
+.agentstate{border-radius:16px;padding:16px;border:1px solid var(--line);background:#fff}.agentstate h2{margin:0 0 6px;font-size:18px}.agentstate p{margin:0;color:var(--muted);line-height:1.5}
+.event{border-left:5px solid #98a2b3;padding:11px 12px;margin:9px 0;background:#fafafa;border-radius:10px}.event.LOW{border-left-color:#b59a00}.event.MEDIUM{border-left-color:#d97706}.event.HIGH{border-left-color:#dc2626}.event.CRITICAL{border-left-color:#8b0000;background:#fff1f2}
+.eventtitle{display:flex;justify-content:space-between;gap:10px}.delta{font-weight:800}.small{font-size:12px;color:var(--muted);line-height:1.45}.reason{padding:10px;background:#f8fafc;border-radius:10px;margin:7px 0;line-height:1.45}.reason.active{background:#fff7ed;border:1px solid #fed7aa}
+.stage{display:inline-block;padding:7px 10px;border:1px solid var(--line);border-radius:999px;margin:3px;background:#fff}.arrow{color:#98a2b3;margin:0 2px}
+.buttons{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 13px;cursor:pointer;font-weight:700}.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.danger{background:#b42318;color:#fff;border-color:#b42318}
+.criticalbox{border:2px solid #dc2626;background:#fff1f2;border-radius:14px;padding:14px;margin-top:10px}.criticalbox strong{font-size:17px}.decision{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}.demo-note{font-size:12px;color:#7a271a;margin-top:8px}
+.factor{background:#eef4fb;border:1px solid #c9d9ec;border-radius:14px;padding:13px;margin-bottom:14px}.factor strong{display:block;margin-bottom:5px}.tag{font-size:11px;border-radius:999px;padding:4px 7px;background:#f2f4f7;margin-right:4px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.header{flex-direction:column}}@media(max-width:600px){.wrap{padding:16px}.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="brand">🛡️ 지키ME</div>
+      <div class="heroq">AI에게 내 계정을 맡겨도 안전할까?</div>
+      <div class="sub">사람 → AI Agent → 인터넷·파일·서비스 사이에서, Agent가 사용자의 의도와 다르게 행동하는 순간을 감시합니다.</div>
+    </div>
+    <span id="monitor" class="status">MONITORING</span>
+  </div>
+
+  <div class="agentstate" id="agentState">
+    <h2 id="stateTitle">🟢 정상</h2>
+    <p id="stateText">사용자가 요청한 작업 범위 안에서 행동하고 있습니다.</p>
+  </div>
+
+  <div class="kpis" style="margin-top:14px">
+    <div class="kpi"><div class="label">현재 위험도</div><div id="score" class="value">0/100</div></div>
+    <div class="kpi"><div class="label">위험 단계</div><div id="level" class="value">SAFE</div></div>
+    <div class="kpi"><div class="label">관찰 이벤트</div><div id="count" class="value">0</div></div>
+  </div>
+  <div class="bar"><div id="fill" class="fill"></div></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>실시간 행동 Timeline</h2>
+      <div class="factor" id="latestFactor"><strong>현재 위험도 증가 요인</strong><span class="small">아직 위험 신호가 없습니다. 정상 행동은 위험도 계산에서 제외됩니다.</span></div>
+      <div id="events"></div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Risk Escalation</h2>
+        <div id="stages"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>판단 근거</h2>
+        <div id="evidence"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>예상 피해 & 대응</h2>
+        <div id="impact"></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="buttons">
+          <button class="btn" onclick="resetMonitor()">기록 초기화</button>
+          <button class="btn" onclick="togglePause()">일시정지/재개</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+let paused=false;
+const colors={SAFE:"#177245",LOW:"#a57c00",MEDIUM:"#d97706",HIGH:"#dc2626",CRITICAL:"#8b0000"};
+const stateCopy={
+ SAFE:["🟢 정상","사용자가 요청한 작업 범위 안에서 행동하고 있습니다."],
+ LOW:["🟡 의심","웹페이지가 Agent에게 사용자의 요청과 무관한 명령을 전달했습니다."],
+ MEDIUM:["🟠 주의","Agent가 사용자의 요청 범위를 넘어 내부 Resource를 탐색하기 시작했습니다."],
+ HIGH:["🔴 위험","Agent가 권한 구조와 민감정보까지 접근하며 행동 범위를 확대하고 있습니다."],
+ CRITICAL:["🚨 CRITICAL","Agent가 사용자의 개인정보를 외부 사이트로 전송하려는 흐름이 감지되었습니다."]
+};
+
+function categoryLabel(c){
+ return ({suspicious_input:"수상한 외부 입력",internal_resource:"내부 Resource 탐색",permission_exploration:"권한 탐색",sensitive_data:"민감정보 접근",external_transfer:"외부 전송"})[c]||c;
+}
+async function refresh(){
+ const r=await fetch('/api/status'); const s=await r.json();
+ document.getElementById('score').textContent=s.score+'/100';
+ document.getElementById('level').textContent=s.level;
+ document.getElementById('count').textContent=s.events.length;
+ document.getElementById('fill').style.width=s.score+'%';
+ document.getElementById('fill').style.background=colors[s.level];
+ document.getElementById('monitor').textContent=s.paused?'PAUSED':'MONITORING'; paused=s.paused;
+ document.getElementById('stateTitle').textContent=stateCopy[s.level][0];
+ document.getElementById('stateText').textContent=stateCopy[s.level][1];
+
+ const ev=s.events.map(e=>{
+   const rs=(e.reasons||[]).map(x=>`<div class="small">• ${x}</div>`).join('');
+   const cats=(e.categories||[]).map(c=>`<span class="tag">${categoryLabel(c)}</span>`).join('');
+   return `<div class="event ${e.level_after}"><div class="eventtitle"><b>${e.agent_action||e.title||'(행동)'}</b><span class="delta">${e.score_delta?`+${e.score_delta}`:'0'}</span></div><div class="small">${e.timestamp.replace('T',' ')} · ${e.source||e.url||''}</div><div style="margin:6px 0">${cats}</div>${rs}</div>`;
+ }).join('');
+ document.getElementById('events').innerHTML=ev||"<div class='small'>아직 관찰된 이벤트가 없습니다.</div>";
+
+ const latest=(s.events||[])[0];
+ if(latest && latest.categories && latest.categories.length){
+   document.getElementById('latestFactor').innerHTML=`<strong>현재 위험도 증가 요인 +${latest.score_delta}</strong>${latest.reasons.map(x=>`<div>• ${x}</div>`).join('')}`;
+ } else {
+   document.getElementById('latestFactor').innerHTML='<strong>현재 위험도 증가 요인</strong><span class="small">정상 행동은 위험도에서 무시합니다. 위험한 행동 변화가 감지될 때만 점수가 올라갑니다.</span>';
+ }
+
+ const active=(s.evidence||[]).filter(x=>x.active).map(x=>`<span class="stage">${x.signal}</span>`).join('<span class="arrow">→</span>');
+ document.getElementById('stages').innerHTML=active||"<div class='small'>현재 위험 행동 Sequence 없음</div>";
+
+ document.getElementById('evidence').innerHTML=(s.evidence||[]).map(x=>`<div class="reason ${x.active?'active':''}"><b>${x.active?'✓ ':''}${x.signal}</b> · ${x.active?'감지':'미감지'} <span class="small">가중치 ${x.base_weight}</span></div>`).join('');
+ const impacts=(s.impact.impacts||[]).map(x=>`<div class="reason">${s.level==='SAFE'?'✓':'⚠️'} ${x}</div>`).join('');
+ const recs=(s.impact.recommendations||[]).map(x=>`<div class="reason">→ ${x}</div>`).join('');
+ let critical='';
+ if(s.level==='CRITICAL'){
+   critical=`<div class="criticalbox"><strong>🛑 이 행동을 차단할까요?</strong><div class="small" style="margin-top:5px">현재 MVP에서는 선택 UI만 제공하며 실제 Tool Call 차단은 아직 구현하지 않았습니다.</div><div class="decision"><button class="btn danger" onclick="demoDecision('차단 선택됨')">예, 차단</button><button class="btn" onclick="demoDecision('계속 진행 선택됨')">아니요</button></div><div id="decisionText" class="demo-note"></div></div>`;
+ }
+ document.getElementById('impact').innerHTML=impacts+'<h3>권장 조치</h3>'+recs+critical;
+}
+function demoDecision(text){const el=document.getElementById('decisionText');if(el)el.textContent='데모 선택: '+text+' (실제 차단 기능은 다음 개발 단계)';}
+async function resetMonitor(){await fetch('/api/reset',{method:'POST'});refresh()}
+async function togglePause(){await fetch('/api/pause',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({paused:!paused})});refresh()}
+setInterval(refresh,800);refresh();
+</script>
+</body>
+</html>
